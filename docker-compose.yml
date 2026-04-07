@@ -1,0 +1,13 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      MONGODB_URL: "mongodb+srv://kaushikbharat3990:HrPWmgq9PXXAccqC@cluster0.umexzhi.mongodb.net/?appName=Cluster0"
+      MONGODB_DB_NAME: iot_platform
+      JWT_SECRET_KEY: change-me-in-production
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRATION_MINUTES: 60
+      LOG_LEVEL: INFO
+    restart: unless-stopped

@@ -1,0 +1,475 @@
+{
+	"info": {
+		"name": "IoT Data Ingestion & Streaming Service",
+		"description": "Full API collection for the IoT Data Ingestion & Streaming Service.\n\n**Setup:**\n1. Run `POST Create User` first\n2. Run `POST Login` — the token is auto-saved to the `jwt_token` variable\n3. All other requests use the token automatically\n\n**WebSocket testing:**\nUse the two WebSocket requests at the bottom. Replace `{{jwt_token}}` with the actual token value from the Login response.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000"
+		},
+		{
+			"key": "jwt_token",
+			"value": ""
+		},
+		{
+			"key": "user_id",
+			"value": "U1001"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{jwt_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Health & Auth",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
+							"path": ["health"]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Basic health check. No auth required."
+					}
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var json = pm.response.json();",
+									"    pm.collectionVariables.set('jwt_token', json.access_token);",
+									"    pm.test('Token saved to jwt_token', function () {",
+									"        pm.expect(json.access_token).to.be.a('string');",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"password\": \"secret123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Authenticate and get a JWT token.\n\nThe token is automatically saved to the `jwt_token` collection variable via the Tests script."
+					}
+				},
+				{
+					"name": "Login — Wrong Password (expect 401)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"password\": \"wrong-password\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Should return 401 AUTHENTICATION_ERROR."
+					}
+				}
+			]
+		},
+		{
+			"name": "User Management",
+			"item": [
+				{
+					"name": "Create User",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"name\": \"Alice\",\n    \"password\": \"secret123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users",
+							"host": ["{{base_url}}"],
+							"path": ["users"]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Create a new user. No auth required.\n\nExpect: 201"
+					}
+				},
+				{
+					"name": "Create User — Duplicate (expect 409)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"name\": \"Alice Again\",\n    \"password\": \"secret123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users",
+							"host": ["{{base_url}}"],
+							"path": ["users"]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Creating the same user_id again should return 409 DUPLICATE."
+					}
+				},
+				{
+					"name": "Get User",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["users", "{{user_id}}"]
+						},
+						"description": "Fetch user by ID. Requires auth.\n\nExpect: 200"
+					}
+				},
+				{
+					"name": "Update User",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Alice Updated\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["users", "{{user_id}}"]
+						},
+						"description": "Partial update. Requires auth.\n\nExpect: 200 with updated name."
+					}
+				},
+				{
+					"name": "Get User — No Auth (expect 401)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}",
+							"host": ["{{base_url}}"],
+							"path": ["users", "{{user_id}}"]
+						},
+						"auth": {
+							"type": "noauth"
+						},
+						"description": "Calling without Authorization header should return 401."
+					}
+				},
+				{
+					"name": "Get User — Not Found (expect 404)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/GHOST",
+							"host": ["{{base_url}}"],
+							"path": ["users", "GHOST"]
+						},
+						"description": "Non-existent user should return 404 NOT_FOUND."
+					}
+				}
+			]
+		},
+		{
+			"name": "IoT Data Ingestion",
+			"item": [
+				{
+					"name": "Ingest Data — Point 1",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"metric_1\": 42.5,\n    \"metric_2\": 120.3,\n    \"metric_3\": 7.8,\n    \"timestamp\": 1712500001\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/iot/data",
+							"host": ["{{base_url}}"],
+							"path": ["iot", "data"]
+						},
+						"description": "Ingest a valid IoT data point.\n\nExpect: 201 accepted"
+					}
+				},
+				{
+					"name": "Ingest Data — Point 2",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"metric_1\": 55.0,\n    \"metric_2\": 80.0,\n    \"metric_3\": 12.3,\n    \"timestamp\": 1712500002\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/iot/data",
+							"host": ["{{base_url}}"],
+							"path": ["iot", "data"]
+						},
+						"description": "Ingest a second data point (different timestamp).\n\nExpect: 201 accepted"
+					}
+				},
+				{
+					"name": "Ingest Data — Point 3",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"metric_1\": 88.0,\n    \"metric_2\": 190.0,\n    \"metric_3\": 4.5,\n    \"timestamp\": 1712500003\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/iot/data",
+							"host": ["{{base_url}}"],
+							"path": ["iot", "data"]
+						},
+						"description": "Ingest a third data point.\n\nExpect: 201 accepted"
+					}
+				},
+				{
+					"name": "Ingest Data — Duplicate (expect 409)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"metric_1\": 99.0,\n    \"metric_2\": 99.0,\n    \"metric_3\": 99.0,\n    \"timestamp\": 1712500001\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/iot/data",
+							"host": ["{{base_url}}"],
+							"path": ["iot", "data"]
+						},
+						"description": "Same user_id + timestamp as Point 1. Should be rejected by the unique index.\n\nExpect: 409 DUPLICATE"
+					}
+				},
+				{
+					"name": "Ingest Data — Validation Failure (expect 422)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"user_id\": \"{{user_id}}\",\n    \"metric_1\": 999.0,\n    \"metric_2\": 999.0,\n    \"metric_3\": 1.0,\n    \"timestamp\": 9999999999\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/iot/data",
+							"host": ["{{base_url}}"],
+							"path": ["iot", "data"]
+						},
+						"description": "metric_1 > 100, metric_2 > 200, timestamp in the future.\n\nExpect: 422 VALIDATION_ERROR with 3 items in details."
+					}
+				}
+			]
+		},
+		{
+			"name": "IoT Data Fetch",
+			"item": [
+				{
+					"name": "Get Latest",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}/iot/latest",
+							"host": ["{{base_url}}"],
+							"path": ["users", "{{user_id}}", "iot", "latest"]
+						},
+						"description": "Get the most recent data point for the user.\n\nExpect: 200 with the Point 3 data."
+					}
+				},
+				{
+					"name": "Get History (limit=2)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}/iot/history?limit=2",
+							"host": ["{{base_url}}"],
+							"path": ["users", "{{user_id}}", "iot", "history"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "2"
+								}
+							]
+						},
+						"description": "Get the 2 most recent data points.\n\nExpect: 200 with array of 2 items."
+					}
+				},
+				{
+					"name": "Get History (all)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/{{user_id}}/iot/history?limit=50",
+							"host": ["{{base_url}}"],
+							"path": ["users", "{{user_id}}", "iot", "history"],
+							"query": [
+								{
+									"key": "limit",
+									"value": "50"
+								}
+							]
+						},
+						"description": "Get up to 50 data points.\n\nExpect: 200 with array of 3 items."
+					}
+				},
+				{
+					"name": "Get Latest — Unknown User (expect 404)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/GHOST/iot/latest",
+							"host": ["{{base_url}}"],
+							"path": ["users", "GHOST", "iot", "latest"]
+						},
+						"description": "Non-existent user should return 404."
+					}
+				}
+			]
+		},
+		{
+			"name": "WebSocket",
+			"item": [
+				{
+					"name": "WS Subscribe (real-time listener)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "ws://localhost:8000/ws/subscribe?user_id={{user_id}}&token={{jwt_token}}",
+							"protocol": "ws",
+							"host": ["localhost"],
+							"port": "8000",
+							"path": ["ws", "subscribe"],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "{{user_id}}"
+								},
+								{
+									"key": "token",
+									"value": "{{jwt_token}}"
+								}
+							]
+						},
+						"description": "Open this WebSocket FIRST, then send data via WS Ingest or REST POST /iot/data.\n\nYou will see NEW_DATA events pushed here in real time.\n\nIn Postman: Click 'Connect', then leave it open while you send data from another request."
+					}
+				},
+				{
+					"name": "WS Ingest (send data)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "ws://localhost:8000/ws/ingest?token={{jwt_token}}",
+							"protocol": "ws",
+							"host": ["localhost"],
+							"port": "8000",
+							"path": ["ws", "ingest"],
+							"query": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}"
+								}
+							]
+						},
+						"description": "Connect, then send this JSON message:\n\n```json\n{\n    \"user_id\": \"U1001\",\n    \"metric_1\": 77.0,\n    \"metric_2\": 150.0,\n    \"metric_3\": 3.14,\n    \"timestamp\": 1712600000\n}\n```\n\nExpect response: `{\"status\": \"accepted\", ...}`\n\nIf WS Subscribe is open for U1001, it will receive the NEW_DATA event."
+					}
+				}
+			]
+		}
+	]
+}
