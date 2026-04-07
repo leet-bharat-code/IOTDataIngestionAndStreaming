@@ -370,32 +370,6 @@ The event bus fans out events within a single process. This is correct for singl
 
 ### Production Scale (Redis Pub/Sub)
 
-Replace `messaging/event_bus.py` with a Redis-backed implementation:
+We can Replace `messaging/event_bus.py` with a Redis-backed implementation:
 
-```
-Service ──► publish_event() ──► Redis PUBLISH
-                                     │
-       Instance A subscriber ──► broadcast to local WS clients
-       Instance B subscriber ──► broadcast to local WS clients
-```
 
-Changes required:
-
-1. Swap `event_bus.py` for a Redis pub/sub adapter (same `publish_event` / `subscribe` interface)
-2. **No changes** to services, domain, repository, or API layers
-
-### Further Scaling
-
-| Concern | Solution |
-|---|---|
-| **Write throughput** | Batch inserts, MongoDB sharding on `user_id` |
-| **WS connection count** | Multiple API instances behind a load balancer with sticky sessions, or Redis pub/sub for cross-instance fan-out |
-| **Data retention** | TTL indexes on `iot_data`, archival to cold storage |
-| **Backpressure** | Message queue (Kafka / RabbitMQ) between ingestion API and the processing pipeline |
-| **Observability** | Structured JSON logging, OpenTelemetry traces, Prometheus metrics |
-
----
-
-## License
-
-MIT
